@@ -322,7 +322,7 @@ int main(int argc, char *argv[]) {
         } else {
           printf("[+] Resuming from checkpoint...\n");
           iWorkFile = DEFAULT_CHECKPOINT;
-          if (!v->LoadWork(iWorkFile)) exit(-1);
+          if (!v->LoadCheckpoint(iWorkFile)) exit(-1);
         }
       }
     }

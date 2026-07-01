@@ -117,6 +117,53 @@ bool Kangaroo::LoadWork(string &fileName) {
     return true;
 }
 
+// Load full checkpoint (HEADW): restores hash table, range, key, counters and kangaroos
+bool Kangaroo::LoadCheckpoint(string &fileName) {
+    double t0 = Timer::get_tick();
+    printf("Loading: %s\n", fileName.c_str());
+
+    uint32_t version;
+    FILE *f = ReadHeader(fileName, &version, HEADW);
+    if (f == NULL)
+        return false;
+
+    // Read metadata written by SaveHeader
+    uint32_t dp;
+    fread(&dp, sizeof(uint32_t), 1, f);
+    initDPSize = (int32_t)dp;
+
+    Int RS, RE;
+    fread(&RS.bits64, 32, 1, f); RS.bits64[4] = 0;
+    fread(&RE.bits64, 32, 1, f); RE.bits64[4] = 0;
+    rangeStart.Set(&RS);
+    rangeEnd.Set(&RE);
+
+    Point key;
+    fread(&key.x.bits64, 32, 1, f); key.x.bits64[4] = 0;
+    fread(&key.y.bits64, 32, 1, f); key.y.bits64[4] = 0;
+    key.z.SetInt32(1);
+    keysToSearch.clear();
+    keysToSearch.push_back(key);
+
+    fread(&offsetCount, sizeof(uint64_t), 1, f);
+    fread(&offsetTime,  sizeof(double),   1, f);
+
+    // Restore hash table
+    hashTable.LoadTable(f);
+
+    // Leave file open so FectchKangaroos can stream kangaroo positions
+    fread(&nbLoadedWalk, sizeof(uint64_t), 1, f);
+    fRead = f;
+
+    double t1 = Timer::get_tick();
+    printf("LoadCheckpoint: [2^%.2f ops] [%s elapsed] [HashTable %s] [%s]\n",
+        log2((double)offsetCount + 1.0),
+        GetTimeStr(offsetTime).c_str(),
+        hashTable.GetSizeInfo().c_str(),
+        GetTimeStr(t1 - t0).c_str());
+    return true;
+}
+
 void Kangaroo::FetchWalks(uint64_t nbWalk, Int *x, Int *y, Int *d) {
     int64_t n = 0;
     printf("Fetch kangaroos: %.0f\n", (double)nbWalk);

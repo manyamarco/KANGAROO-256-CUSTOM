@@ -121,6 +121,7 @@ public:
   void Run(int nbThread, std::vector<int> gpuId, std::vector<int> gridSize);
   bool ParseConfigFile(std::string &fileName);
   bool LoadWork(std::string &fileName);
+  bool LoadCheckpoint(std::string &fileName);
   void Check(std::vector<int> gpuId, std::vector<int> gridSize);
   void MergeDir(std::string& dirname, std::string& dest);
   bool MergeWork(std::string &file1, std::string &file2, std::string &dest, bool printStat=true);
