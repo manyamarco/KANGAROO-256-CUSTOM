@@ -358,13 +358,13 @@ void Kangaroo::SolveKeyCPU(TH_PARAM *ph) {
             }
             if (!endOfSearch) counters[thId]++;
         }
-    }
 
-    if (saveRequest && !endOfSearch) {
-        ph->isWaiting = true;
-        LOCK(saveMutex);
-        ph->isWaiting = false;
-        UNLOCK(saveMutex);
+        if (saveRequest && !endOfSearch) {
+            ph->isWaiting = true;
+            LOCK(saveMutex);
+            ph->isWaiting = false;
+            UNLOCK(saveMutex);
+        }
     }
 
     delete grp;
@@ -438,7 +438,7 @@ void Kangaroo::SolveKeyGPU(TH_PARAM *ph) {
 
         if (!gpuFound.empty()) {
             LOCK(ghMutex);
-            for (int g = 0; !endOfSearch && g < gpuFound.size(); g++) {
+            for (int g = 0; !endOfSearch && g < (int)gpuFound.size(); g++) {
                 uint32_t kType = gpuFound[g].kIdx % 2;
 
                 if (!AddToTable(&gpuFound[g].x, &gpuFound[g].d, kType)) {
@@ -450,14 +450,14 @@ void Kangaroo::SolveKeyGPU(TH_PARAM *ph) {
             }
             UNLOCK(ghMutex);
         }
-    }
 
-    if (saveRequest && !endOfSearch) {
-        if (saveKangaroo) gpu->GetKangaroos(ph->px, ph->py, ph->distance);
-        ph->isWaiting = true;
-        LOCK(saveMutex);
-        ph->isWaiting = false;
-        UNLOCK(saveMutex);
+        if (saveRequest && !endOfSearch) {
+            if (saveKangaroo) gpu->GetKangaroos(ph->px, ph->py, ph->distance);
+            ph->isWaiting = true;
+            LOCK(saveMutex);
+            ph->isWaiting = false;
+            UNLOCK(saveMutex);
+        }
     }
 
     safe_delete_array(ph->px);
