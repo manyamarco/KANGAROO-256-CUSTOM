@@ -71,12 +71,14 @@ jobs:
           $vsInstallPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
           Write-Host "VS install path: $vsInstallPath"
 
-          $dst = "$vsInstallPath\MSBuild\Microsoft\VC\v180\BuildCustomizations"
-          if (-not (Test-Path $dst)) {
-            New-Item -ItemType Directory -Path $dst -Force | Out-Null
+          # Copy to ALL VC\v* BuildCustomizations dirs found under VS install
+          $bcDirs = Get-ChildItem "$vsInstallPath\MSBuild\Microsoft\VC" -Directory |
+                    ForEach-Object { "$($_.FullName)\BuildCustomizations" }
+          foreach ($dst in $bcDirs) {
+            if (-not (Test-Path $dst)) { New-Item -ItemType Directory -Path $dst -Force | Out-Null }
+            Write-Host "Copying to $dst"
+            Copy-Item "$src\*" -Destination $dst -Force
           }
-          Write-Host "Copying CUDA props from $src to $dst"
-          Copy-Item "$src\*" -Destination $dst -Force
 
           # Detect actual installed CUDA props version (e.g. "CUDA 12.4")
           $propsFile = Get-ChildItem $dst -Filter "CUDA *.props" | Select-Object -First 1
