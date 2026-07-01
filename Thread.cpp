@@ -142,7 +142,7 @@ string Kangaroo::GetTimeStr(double dTime) {
 void Kangaroo::Process(TH_PARAM *params, std::string unit) {
     double t0, t1;
     uint64_t count, lastCount = 0, gpuCount = 0, lastGPUCount = 0;
-    double avgKeyRate = 0.0, avgGpuKeyRate = 0.0, lastSave = 0;
+    double avgKeyRate = 0.0, avgGpuKeyRate = 0.0, lastSave = -1e9;
 #ifndef WIN64
     setvbuf(stdout, NULL, _IONBF, 0);
 #endif
@@ -201,12 +201,13 @@ void Kangaroo::Process(TH_PARAM *params, std::string unit) {
                 hashTable.GetSizeInfo().c_str()
             );
         }
-    }
-    // Save request
-    if (workFile.length() > 0 && !endOfSearch) {
-        if ((t1 - lastSave) > saveWorkPeriod) {
-            SaveWork(count + offsetCount, t1 - startTime + offsetTime, params, nbCPUThread + nbGPUThread);
-            lastSave = t1;
+        // Periodic checkpoint save while running
+        if (workFile.length() > 0 && !endOfSearch) {
+            if ((t1 - lastSave) >= (double)saveWorkPeriod) {
+                printf("\n[+] Checkpoint: saving progress...\n");
+                SaveWork(count + offsetCount, t1 - startTime + offsetTime, params, nbCPUThread + nbGPUThread);
+                lastSave = t1;
+            }
         }
     }
 

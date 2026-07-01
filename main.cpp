@@ -127,7 +127,7 @@ static vector<int> gridSize;
 static string workFile = "";
 static string checkWorkFile = "";
 static string iWorkFile = "";
-static uint32_t savePeriod = 60;
+static uint32_t savePeriod = 300;
 static bool saveKangaroo = false;
 static string merge1 = "";
 static string merge2 = "";
