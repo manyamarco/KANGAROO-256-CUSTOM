@@ -55,7 +55,7 @@ endif
 LFLAGS = -lpthread -L$(CUDA)/lib64 -lcudart
 else
 ifdef cpu
-CXXFLAGS = -m64 -march=native -mtune=native -mssse3 -Wno-unused-result -Wno-write-strings -pthread -ftree-vectorize -flto -O3 -funroll-loops -finline-functions -I.
+CXXFLAGS = -m64 -march=native -mtune=native -mssse3 -Wno-unused-result -Wno-write-strings -pthread -ftree-vectorize -O3 -funroll-loops -finline-functions -I.
 LFLAGS = -lpthread
 else
 ifdef debug
