@@ -65,16 +65,25 @@ jobs:
         run: |
           $cudaPath = $env:CUDA_PATH
           $src = "$cudaPath\extras\visual_studio_integration\MSBuildExtensions"
-          $dst = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Microsoft\VC\v180\BuildCustomizations"
+
+          # Find VS BuildCustomizations directory dynamically
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vsInstallPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          Write-Host "VS install path: $vsInstallPath"
+
+          $dst = "$vsInstallPath\MSBuild\Microsoft\VC\v180\BuildCustomizations"
+          if (-not (Test-Path $dst)) {
+            New-Item -ItemType Directory -Path $dst -Force | Out-Null
+          }
           Write-Host "Copying CUDA props from $src to $dst"
           Copy-Item "$src\*" -Destination $dst -Force
 
           # Detect actual installed CUDA props version (e.g. "CUDA 12.4")
           $propsFile = Get-ChildItem $dst -Filter "CUDA *.props" | Select-Object -First 1
-          $cudaVer = $propsFile.BaseName  # e.g. "CUDA 12.4"
+          $cudaVer = $propsFile.BaseName
           Write-Host "Detected CUDA props version: $cudaVer"
 
-          # Patch vcxproj to use detected version instead of hardcoded one
+          # Patch vcxproj to use detected version
           $vcxproj = "VC_CUDA118\Kangaroo.vcxproj"
           (Get-Content $vcxproj) -replace 'CUDA \d+\.\d+', $cudaVer | Set-Content $vcxproj
           Write-Host "Patched $vcxproj with: $cudaVer"
