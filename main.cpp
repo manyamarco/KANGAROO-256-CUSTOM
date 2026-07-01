@@ -127,8 +127,8 @@ static vector<int> gridSize;
 static string workFile = "";
 static string checkWorkFile = "";
 static string iWorkFile = "";
-static uint32_t savePeriod = 300;
-static bool saveKangaroo = false;
+static uint32_t savePeriod = 60;
+static bool saveKangaroo = true;
 static string merge1 = "";
 static string merge2 = "";
 static string mergeDest = "";
@@ -279,6 +279,12 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
+  // Auto-assign default checkpoint file if -w not specified
+  static const string DEFAULT_CHECKPOINT = "kangaroo.chk";
+  if (workFile.empty()) {
+    workFile = DEFAULT_CHECKPOINT;
+  }
+
   Kangaroo *v = new Kangaroo(secp, dp, gpuEnable, workFile, iWorkFile, savePeriod, saveKangaroo, maxStep, wtimeout, ntimeout, outputFile, splitWorkFile);
   if (checkFlag) {
     v->Check(gpuId, gridSize);
@@ -298,11 +304,35 @@ int main(int argc, char *argv[]) {
       v->MergeWork(merge1, merge2, mergeDest);
       exit(0);
     }
-    if (iWorkFile.length() > 0) {
-      if (!v->LoadWork(iWorkFile)) exit(-1);
-    } else if (configFile.length() > 0) {
-      if (!v->ParseConfigFile(configFile)) exit(-1);
+
+    // Auto-detect checkpoint on startup: if no -i given and default checkpoint exists
+    if (iWorkFile.empty()) {
+      FILE *chkTest = fopen(DEFAULT_CHECKPOINT.c_str(), "rb");
+      if (chkTest != NULL) {
+        fclose(chkTest);
+        printf("\n\033[01;33m[!] Checkpoint found: %s\033[0m\n", DEFAULT_CHECKPOINT.c_str());
+        string chkName = DEFAULT_CHECKPOINT;
+        v->WorkInfo(chkName);
+        printf("\n\033[01;32m[?] Resume from checkpoint? [Y/n]: \033[0m");
+        fflush(stdout);
+        char ans[8] = {0};
+        if (fgets(ans, sizeof(ans), stdin) != NULL && (ans[0] == 'n' || ans[0] == 'N')) {
+          printf("[+] Discarding checkpoint: %s\n", DEFAULT_CHECKPOINT.c_str());
+          remove(DEFAULT_CHECKPOINT.c_str());
+        } else {
+          printf("[+] Resuming from checkpoint...\n");
+          iWorkFile = DEFAULT_CHECKPOINT;
+          if (!v->LoadWork(iWorkFile)) exit(-1);
+        }
       }
+    }
+
+    if (!iWorkFile.empty() && iWorkFile != DEFAULT_CHECKPOINT) {
+      if (!v->LoadWork(iWorkFile)) exit(-1);
+    }
+    if (configFile.length() > 0) {
+      if (!v->ParseConfigFile(configFile)) exit(-1);
+    }
     v->Run(nbCPUThread, gpuId, gridSize);
   }
 
