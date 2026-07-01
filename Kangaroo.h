@@ -29,7 +29,9 @@ typedef int SOCKET;
 #include "GPU/GPUEngine.h"
 #include <unordered_map>
 #include <bitset>
+#ifndef WIN64
 #include <sys/resource.h>
+#endif
 #ifdef WIN64
 typedef HANDLE THREAD_HANDLE;
 #define LOCK(mutex) WaitForSingleObject(mutex,INFINITE);
