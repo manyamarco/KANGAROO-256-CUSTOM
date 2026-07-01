@@ -173,7 +173,7 @@ void Kangaroo::SetDP(int size) {
     }
 
 #ifdef WIN64
-    ::printf("[+] DP size: %d [0x%016I64X%016I64%016I64X%016I64X]\n", dpSize,
+    ::printf("[+] DP size: %d [0x%016I64X%016I64X%016I64X%016I64X]\n", dpSize,
              dMask.i64[3], dMask.i64[2], dMask.i64[1], dMask.i64[0]);
 #else
     ::printf("[+] DP size: %d [0x%" PRIx64 "%" PRIx64 "%" PRIx64 "%" PRIx64 "]\n",
@@ -463,7 +463,7 @@ void Kangaroo::SolveKeyGPU(TH_PARAM *ph) {
     safe_delete_array(ph->px);
     safe_delete_array(ph->py);
     safe_delete_array(ph->distance);
-    delete gpu;
+    gpu.reset();
 
 #else
     ph->hasStarted = true;
