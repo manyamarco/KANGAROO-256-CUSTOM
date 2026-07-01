@@ -42,6 +42,40 @@ jobs:
           path: kangaroo-256
           if-no-files-found: error
 
+  build-windows:
+    name: Windows CUDA Build (sm_75–90 + PTX)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install CUDA Toolkit 12.4
+        uses: Jimver/cuda-toolkit@v0.2.19
+        with:
+          cuda: '12.4.1'
+          method: network
+          sub-packages: '["nvcc", "cudart", "visual_studio_integration"]'
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release (universal CUDA)
+        working-directory: VC_CUDA118
+        run: |
+          msbuild Kangaroo.sln /p:Configuration=Release /p:Platform=x64 /m /v:m
+
+      - name: Rename binary
+        run: |
+          move VC_CUDA118\x64\Release\Kangaroo.exe kangaroo-256.exe
+
+      - name: Upload Windows binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: kangaroo-256-windows-cuda-universal
+          path: kangaroo-256.exe
+          if-no-files-found: error
+
   build-cpu:
     name: CPU-only Build
     runs-on: ubuntu-latest
