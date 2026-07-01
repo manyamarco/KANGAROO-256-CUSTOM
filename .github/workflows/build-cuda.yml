@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-gpu:
-    name: CUDA GPU Build
+  build-universal:
+    name: Universal CUDA Build (sm_75–90 + PTX)
     runs-on: ubuntu-latest
     container:
       image: nvidia/cuda:12.4.1-devel-ubuntu22.04
@@ -23,21 +23,22 @@ jobs:
           apt-get update -y
           apt-get install -y build-essential g++ make
 
-      - name: Detect CUDA capability
-        id: cuda
-        run: |
-          # Use sm_86 (Ampere) as default for GitHub runners without real GPU
-          echo "ccap=86" >> $GITHUB_OUTPUT
-          nvcc --version
+      - name: Show CUDA version
+        run: nvcc --version
 
-      - name: Build with CUDA GPU support
+      - name: Build universal binary (all architectures + PTX)
         run: |
-          make gpu=1 ccap=${{ steps.cuda.outputs.ccap }}
+          make gpu=1 multi=1
 
-      - name: Upload binary
+      - name: Show binary info
+        run: |
+          ls -lh kangaroo-256
+          cuobjdump kangaroo-256 2>/dev/null | grep "arch\|sm_" || true
+
+      - name: Upload universal binary
         uses: actions/upload-artifact@v4
         with:
-          name: kangaroo-256-cuda-sm${{ steps.cuda.outputs.ccap }}
+          name: kangaroo-256-cuda-universal
           path: kangaroo-256
           if-no-files-found: error
 
@@ -62,34 +63,4 @@ jobs:
         with:
           name: kangaroo-256-cpu
           path: kangaroo-256
-          if-no-files-found: error
-
-  build-multi-arch:
-    name: CUDA Multi-Arch Build
-    runs-on: ubuntu-latest
-    container:
-      image: nvidia/cuda:12.4.1-devel-ubuntu22.04
-    strategy:
-      matrix:
-        ccap: [75, 80, 86, 89, 90]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          apt-get update -y
-          apt-get install -y build-essential g++ make
-
-      - name: Build for sm_${{ matrix.ccap }}
-        run: |
-          make gpu=1 ccap=${{ matrix.ccap }}
-          mv kangaroo-256 kangaroo-256-sm${{ matrix.ccap }}
-
-      - name: Upload binary sm_${{ matrix.ccap }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: kangaroo-256-cuda-sm${{ matrix.ccap }}
-          path: kangaroo-256-sm${{ matrix.ccap }}
           if-no-files-found: error

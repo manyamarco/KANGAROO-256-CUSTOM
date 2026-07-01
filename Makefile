@@ -68,12 +68,25 @@ endif
 endif
 
 ifdef gpu
+# Multi-arch build: covers Turing→Hopper + PTX for forward JIT compatibility
+ifdef multi
+GENCODE_FLAGS = \
+	-gencode=arch=compute_75,code=sm_75 \
+	-gencode=arch=compute_80,code=sm_80 \
+	-gencode=arch=compute_86,code=sm_86 \
+	-gencode=arch=compute_89,code=sm_89 \
+	-gencode=arch=compute_90,code=sm_90 \
+	-gencode=arch=compute_90,code=compute_90
+else
+GENCODE_FLAGS = -gencode=arch=compute_$(ccap),code=sm_$(ccap)
+endif
+
 ifdef debug
 $(OBJDIR)/GPU/GPUEngine.o: GPU/GPUEngine.cu
-	$(NVCC) -G -maxrregcount=0 --ptxas-options=-v --compile --compiler-options -fPIC -ccbin $(CXXCUDA) -m64 -g -I$(CUDA)/include -gencode=arch=compute_$(ccap),code=sm_$(ccap) -o $(OBJDIR)/GPU/GPUEngine.o -c GPU/GPUEngine.cu
+	$(NVCC) -G -maxrregcount=0 --ptxas-options=-v --compile --compiler-options -fPIC -ccbin $(CXXCUDA) -m64 -g -I$(CUDA)/include $(GENCODE_FLAGS) -o $(OBJDIR)/GPU/GPUEngine.o -c GPU/GPUEngine.cu
 else
 $(OBJDIR)/GPU/GPUEngine.o: GPU/GPUEngine.cu
-	$(NVCC) -maxrregcount=0 --ptxas-options=-v --compile --compiler-options -fPIC -ccbin $(CXXCUDA) -m64 -O2 -I$(CUDA)/include -gencode=arch=compute_$(ccap),code=sm_$(ccap) -o $(OBJDIR)/GPU/GPUEngine.o -c GPU/GPUEngine.cu
+	$(NVCC) -maxrregcount=0 --ptxas-options=-v --compile --compiler-options -fPIC -ccbin $(CXXCUDA) -m64 -O2 -I$(CUDA)/include $(GENCODE_FLAGS) -o $(OBJDIR)/GPU/GPUEngine.o -c GPU/GPUEngine.cu
 endif
 endif
 
