@@ -60,6 +60,25 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      - name: Copy CUDA BuildCustomizations to VS and patch vcxproj
+        shell: pwsh
+        run: |
+          $cudaPath = $env:CUDA_PATH
+          $src = "$cudaPath\extras\visual_studio_integration\MSBuildExtensions"
+          $dst = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Microsoft\VC\v180\BuildCustomizations"
+          Write-Host "Copying CUDA props from $src to $dst"
+          Copy-Item "$src\*" -Destination $dst -Force
+
+          # Detect actual installed CUDA props version (e.g. "CUDA 12.4")
+          $propsFile = Get-ChildItem $dst -Filter "CUDA *.props" | Select-Object -First 1
+          $cudaVer = $propsFile.BaseName  # e.g. "CUDA 12.4"
+          Write-Host "Detected CUDA props version: $cudaVer"
+
+          # Patch vcxproj to use detected version instead of hardcoded one
+          $vcxproj = "VC_CUDA118\Kangaroo.vcxproj"
+          (Get-Content $vcxproj) -replace 'CUDA \d+\.\d+', $cudaVer | Set-Content $vcxproj
+          Write-Host "Patched $vcxproj with: $cudaVer"
+
       - name: Build Release (universal CUDA)
         working-directory: VC_CUDA118
         run: |
