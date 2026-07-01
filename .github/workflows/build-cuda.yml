@@ -1,0 +1,95 @@
+name: Build with CUDA
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-gpu:
+    name: CUDA GPU Build
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.4.1-devel-ubuntu22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update -y
+          apt-get install -y build-essential g++ make
+
+      - name: Detect CUDA capability
+        id: cuda
+        run: |
+          # Use sm_86 (Ampere) as default for GitHub runners without real GPU
+          echo "ccap=86" >> $GITHUB_OUTPUT
+          nvcc --version
+
+      - name: Build with CUDA GPU support
+        run: |
+          make gpu=1 ccap=${{ steps.cuda.outputs.ccap }}
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: kangaroo-256-cuda-sm${{ steps.cuda.outputs.ccap }}
+          path: kangaroo-256
+          if-no-files-found: error
+
+  build-cpu:
+    name: CPU-only Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential g++ make
+
+      - name: Build CPU-optimized
+        run: make cpu=1
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: kangaroo-256-cpu
+          path: kangaroo-256
+          if-no-files-found: error
+
+  build-multi-arch:
+    name: CUDA Multi-Arch Build
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.4.1-devel-ubuntu22.04
+    strategy:
+      matrix:
+        ccap: [75, 80, 86, 89, 90]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update -y
+          apt-get install -y build-essential g++ make
+
+      - name: Build for sm_${{ matrix.ccap }}
+        run: |
+          make gpu=1 ccap=${{ matrix.ccap }}
+          mv kangaroo-256 kangaroo-256-sm${{ matrix.ccap }}
+
+      - name: Upload binary sm_${{ matrix.ccap }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kangaroo-256-cuda-sm${{ matrix.ccap }}
+          path: kangaroo-256-sm${{ matrix.ccap }}
+          if-no-files-found: error
